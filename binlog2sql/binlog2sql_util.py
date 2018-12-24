@@ -3,6 +3,7 @@
 
 import os
 import sys
+import platform
 import argparse
 import datetime
 import getpass
@@ -13,7 +14,6 @@ from pymysqlreplication.row_event import (
     UpdateRowsEvent,
     DeleteRowsEvent,
 )
-
 
 if sys.version > '3':
     PY3PLUS = True
@@ -91,6 +91,7 @@ def parse_args():
                        help='only print dml, ignore ddl')
     event.add_argument('--sql-type', dest='sql_type', type=str, nargs='*', default=['INSERT', 'UPDATE', 'DELETE'],
                        help='Sql type you want to process, support INSERT, UPDATE, DELETE.')
+    event.add_argument('--json', dest='json', default=False, help='Support MySQL 5.7 JSON type.')
 
     # exclusive = parser.add_mutually_exclusive_group()
     parser.add_argument('-K', '--no-primary-key', dest='no_pk', action='store_true',
@@ -209,7 +210,7 @@ def generate_sql_pattern(binlog_event, row=None, flashback=False, no_pk=False):
                 binlog_event.schema, binlog_event.table,
                 ', '.join(['`%s`=%%s' % x for x in row['before_values'].keys()]),
                 ' AND '.join(map(compare_items, row['after_values'].items())))
-            values = map(fix_object, list(row['before_values'].values())+list(row['after_values'].values()))
+            values = map(fix_object, list(row['before_values'].values()) + list(row['after_values'].values()))
     else:
         if isinstance(binlog_event, WriteRowsEvent):
             if no_pk:
@@ -236,7 +237,7 @@ def generate_sql_pattern(binlog_event, row=None, flashback=False, no_pk=False):
                 ', '.join(['`%s`=%%s' % k for k in row['after_values'].keys()]),
                 ' AND '.join(map(compare_items, row['before_values'].items()))
             )
-            values = map(fix_object, list(row['after_values'].values())+list(row['before_values'].values()))
+            values = map(fix_object, list(row['after_values'].values()) + list(row['before_values'].values()))
 
     return {'template': template, 'values': list(values)}
 
@@ -246,7 +247,7 @@ def reversed_lines(fin):
     part = ''
     for block in reversed_blocks(fin):
         if PY3PLUS:
-            block = block.decode("utf-8")
+            block = platform.system() == 'Windows' and block.decode("gbk") or block.decode("utf-8")
         for c in reversed(block):
             if c == '\n' and part:
                 yield part[::-1]
