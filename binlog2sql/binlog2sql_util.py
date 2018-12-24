@@ -91,7 +91,7 @@ def parse_args():
                        help='only print dml, ignore ddl')
     event.add_argument('--sql-type', dest='sql_type', type=str, nargs='*', default=['INSERT', 'UPDATE', 'DELETE'],
                        help='Sql type you want to process, support INSERT, UPDATE, DELETE.')
-    event.add_argument('--json', dest='json', default=False, help='Support MySQL 5.7 JSON type.')
+    event.add_argument('--json', dest='json', action='store_true', default=False, help='Support MySQL 5.7 JSON type.')
 
     # exclusive = parser.add_mutually_exclusive_group()
     parser.add_argument('-K', '--no-primary-key', dest='no_pk', action='store_true',
