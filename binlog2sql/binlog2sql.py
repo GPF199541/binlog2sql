@@ -153,14 +153,13 @@ class Binlog2sql(object):
 
 
 if __name__ == '__main__':
-    # args = command_line_args(sys.argv[1:])
-    # conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
-    #                         end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
-    #                         stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
-    #                         no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
-    #                         back_interval=args.back_interval, only_dml=args.only_dml, sql_type=args.sql_type)
-    conn_setting = {'host': '172.16.3.32', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
-    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', start_pos=2378,
-                            sql_type=['INSERT', 'UPDATE', 'DELETE'], json=True, flashback=True)
+    args = command_line_args(sys.argv[1:])
+    conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
+    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
+                            end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
+                            stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
+                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
+                            back_interval=args.back_interval, only_dml=args.only_dml, sql_type=args.sql_type)
+    # conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', start_pos=2378, son=True)
     binlog2sql.process_binlog()
