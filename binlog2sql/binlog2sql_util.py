@@ -55,6 +55,7 @@ def parse_args():
     """parse args for binlog2sql"""
 
     parser = argparse.ArgumentParser(description='Parse MySQL binlog to SQL you want', add_help=False)
+    # connect setting
     connect_setting = parser.add_argument_group('connect setting')
     connect_setting.add_argument('-h', '--host', dest='host', type=str,
                                  help='Host the MySQL database server located', default='127.0.0.1')
@@ -64,6 +65,7 @@ def parse_args():
                                  help='MySQL Password to use', default='')
     connect_setting.add_argument('-P', '--port', dest='port', type=int,
                                  help='MySQL port to use', default=3306)
+    # interval filter
     interval = parser.add_argument_group('interval filter')
     interval.add_argument('--start-file', dest='start_file', type=str, help='Start binlog file to be parsed')
     interval.add_argument('--start-position', '--start-pos', dest='start_pos', type=int,
@@ -76,30 +78,34 @@ def parse_args():
                           help="Start time. format %%Y-%%m-%%d %%H:%%M:%%S", default='')
     interval.add_argument('--stop-datetime', dest='stop_time', type=str,
                           help="Stop Time. format %%Y-%%m-%%d %%H:%%M:%%S;", default='')
-    parser.add_argument('--stop-never', dest='stop_never', action='store_true', default=False,
-                        help="Continuously parse binlog. default: stop at the latest event when you start.")
-    parser.add_argument('--help', dest='help', action='store_true', help='help information', default=False)
+    interval.add_argument('--stop-never', dest='stop_never', action='store_true', default=False,
+                          help="Continuously parse binlog. default: stop at the latest event when you start.")
 
+    # schema filter
     schema = parser.add_argument_group('schema filter')
     schema.add_argument('-d', '--databases', dest='databases', type=str, nargs='*',
                         help='dbs you want to process', default='')
     schema.add_argument('-t', '--tables', dest='tables', type=str, nargs='*',
                         help='tables you want to process', default='')
 
+    # type filter
     event = parser.add_argument_group('type filter')
     event.add_argument('--only-dml', dest='only_dml', action='store_true', default=False,
                        help='only print dml, ignore ddl')
     event.add_argument('--sql-type', dest='sql_type', type=str, nargs='*', default=['INSERT', 'UPDATE', 'DELETE'],
                        help='Sql type you want to process, support INSERT, UPDATE, DELETE.')
-    event.add_argument('--json', dest='json', action='store_true', default=False, help='Support MySQL 5.7 JSON type.')
 
-    # exclusive = parser.add_mutually_exclusive_group()
-    parser.add_argument('-K', '--no-primary-key', dest='no_pk', action='store_true',
-                        help='Generate insert sql without primary key if exists', default=False)
-    parser.add_argument('-B', '--flashback', dest='flashback', action='store_true',
-                        help='Flashback data to start_position of start_file', default=False)
-    parser.add_argument('--back-interval', dest='back_interval', type=float, default=1.0,
-                        help="Sleep time between chunks of 1000 rollback sql. set it to 0 if do not need sleep")
+    # optional
+    optional = parser.add_argument_group('optional')
+    optional.add_argument('-K', '--no-primary-key', dest='no_pk', action='store_true',
+                          help='Generate insert sql without primary key if exists', default=False)
+    optional.add_argument('-B', '--flashback', dest='flashback', action='store_true',
+                          help='Flashback data to start_position of start_file', default=False)
+    optional.add_argument('--back-interval', dest='back_interval', type=float, default=1.0,
+                          help="Sleep time between chunks of 1000 rollback sql. set it to 0 if do not need sleep")
+    optional.add_argument('--json', dest='json', action='store_true', default=False,
+                          help='Support MySQL 5.7 JSON type.')
+    optional.add_argument('--help', dest='help', action='store_true', help='help information', default=False)
     return parser
 
 

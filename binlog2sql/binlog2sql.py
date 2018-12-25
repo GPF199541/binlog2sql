@@ -159,7 +159,8 @@ if __name__ == '__main__':
                             end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
                             stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
                             no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
-                            back_interval=args.back_interval, only_dml=args.only_dml, sql_type=args.sql_type)
+                            back_interval=args.back_interval, only_dml=args.only_dml, sql_type=args.sql_type,
+                            json=args.json)
     # conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', start_pos=2378, son=True)
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', json=True)
     binlog2sql.process_binlog()
