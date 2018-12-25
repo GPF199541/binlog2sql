@@ -123,3 +123,20 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 --back-interval  flashback模式下，每打印1000行回滚SQL，线程休眠N秒。可选。默认N=1。
 --json           支持JSON格式字段解析。可选，默认不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
 ```
+
+本地调试
+===
+```python
+if __name__ == '__main__':
+    # args = command_line_args(sys.argv[1:])
+    # conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
+    #                         end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
+    #                         stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
+    #                         no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
+    #                         back_interval=args.back_interval, only_dml=args.only_dml, sql_type=args.sql_type,
+    #                         json=args.json)
+    conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
+    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', json=True)
+    binlog2sql.process_binlog()
+```
