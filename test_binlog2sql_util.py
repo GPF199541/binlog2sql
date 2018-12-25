@@ -6,7 +6,7 @@ import unittest
 import mock
 
 sys.path.append("..")
-from binlog2sql.binlog2sql_util import *
+from binlog2sql_util import *
 
 
 class TestBinlog2sqlUtil(unittest.TestCase):

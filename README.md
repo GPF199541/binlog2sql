@@ -1,232 +1,116 @@
 binlog2sql
-========================
+===
 
-从MySQL binlog解析出你要的SQL。根据不同选项，你可以得到原始SQL、回滚SQL、去除主键的INSERT SQL等。
+从 `MySQL binlog` 中解析出 `REDO SQL, UNDO SQL`。本项目是[danfengcao/binlog2sql](https://github.com/danfengcao/binlog2sql)的分支，将长期更新并维护。  
+
 
 用途
-===========
-
-* 数据快速回滚(闪回)
-* 主从切换后新master丢数据的修复
-* 从binlog生成标准SQL，带来的衍生功能
-
-
-项目状态
 ===
-正常维护。应用于部分公司线上环境。
 
-* 已测试环境
-    * Python 2.7, 3.4+
-    * MySQL 5.6, 5.7
+* `UNDO SQL` 用于数据恢复，例如误操作或业务异常数据。
+* `REDO SQL` 用于数据重做，例如主从切换后 `MASTER` 丢失数据（延迟）。
+* 生成标准 `SQL` 用于其它用途。
+
+
+适用
+===
+* `Python 2.7, 3.4+`
+* `MySQL 5.6, 5.7`
 
 
 安装
-==============
+===
 
 ```
-shell> git clone https://github.com/danfengcao/binlog2sql.git && cd binlog2sql
+shell> git clone https://github.com/nloneday/binlog2sql.git && cd binlog2sql
 shell> pip install -r requirements.txt
 ```
-git与pip的安装问题请自行搜索解决。
 
-使用
-=========
+权限
+===
 
-### MySQL server必须设置以下参数:
+```
+GRANT SELECT, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO `user`@`%`;
 
-    [mysqld]
-    server_id = 1
-    log_bin = /var/log/mysql/mysql-bin.log
-    max_binlog_size = 1G
-    binlog_format = row
-    binlog_row_image = full
-
-### user需要的最小权限集合：
-
-    select, super/replication client, replication slave
-    
-    建议授权
-    GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 
-
-**权限说明**
-
-* select：需要读取server端information_schema.COLUMNS表，获取表结构的元信息，拼接成可视化的sql语句
-* super/replication client：两个权限都可以，需要执行'SHOW MASTER STATUS', 获取server端的binlog列表
-* replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
-
-
-### 基本用法
-
-
-**解析出标准SQL**
-
-```bash
-shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p'admin' -dtest -t test3 test4 --start-file='mysql-bin.000002'
-
-输出：
-INSERT INTO `test`.`test3`(`addtime`, `data`, `id`) VALUES ('2016-12-10 13:03:38', 'english', 4); #start 570 end 736
-UPDATE `test`.`test3` SET `addtime`='2016-12-10 12:00:00', `data`='中文', `id`=3 WHERE `addtime`='2016-12-10 13:03:22' AND `data`='中文' AND `id`=3 LIMIT 1; #start 763 end 954
-DELETE FROM `test`.`test3` WHERE `addtime`='2016-12-10 13:03:38' AND `data`='english' AND `id`=4 LIMIT 1; #start 981 end 1147
+# 说明：
+select：需要读取server端information_schema.COLUMNS表，获取表结构的元信息，拼接成可视化的sql语句
+replication client：两个权限都可以，需要执行'SHOW MASTER STATUS', 获取server端的binlog列表
+replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
 ```
 
-**解析出回滚SQL**
+
+用法
+===
+
+
+**解析出重做 `REDO SQL`**
+
+- `REDO SQL, UNDO SQL` 的唯一区别是 `--flashback` 选项。
 
 ```bash
-
-shell> python binlog2sql.py --flashback -h127.0.0.1 -P3306 -uadmin -p'admin' -dtest -ttest3 --start-file='mysql-bin.000002' --start-position=763 --stop-position=1147
+shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:00:00'
 
 输出：
-INSERT INTO `test`.`test3`(`addtime`, `data`, `id`) VALUES ('2016-12-10 13:03:38', 'english', 4); #start 981 end 1147
-UPDATE `test`.`test3` SET `addtime`='2016-12-10 13:03:22', `data`='中文', `id`=3 WHERE `addtime`='2016-12-10 12:00:00' AND `data`='中文' AND `id`=3 LIMIT 1; #start 763 end 954
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); #start 568 end 803 time 2018-12-24 14:04:00
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); #start 834 end 1069 time 2018-12-24 14:05:23
+
 ```
 
-### 选项
+**解析出回滚 `UNDO SQL`**
 
-**mysql连接配置**
+```bash
+shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:00:00' --flashback
 
--h host; -P port; -u user; -p password
+输出：
+DELETE FROM `test`.`person` WHERE `id`=2 AND `name`='wawa' LIMIT 1; #start 834 end 1069 time 2018-12-24 14:05:23
+DELETE FROM `test`.`person` WHERE `id`=1 AND `name`='haha' LIMIT 1; #start 568 end 803 time 2018-12-24 14:04:00
 
-**解析模式**
+```
 
---stop-never 持续解析binlog。可选。默认False，同步至执行命令时最新的binlog位置。
+- `MySQL 5.7` 新增 `JSON` 格式，`--json` 选项用来解析生成 `JSON` 格式字段。
 
--K, --no-primary-key 对INSERT语句去除主键。可选。默认False
+```bash
+mysql> ALTER TABLE `test`.`person` ADD COLUMN `desc` json;
 
--B, --flashback 生成回滚SQL，可解析大文件，不受内存限制。可选。默认False。与stop-never或no-primary-key不能同时添加。
+shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:30:00'
 
---back-interval -B模式下，每打印一千行回滚SQL，加一句SLEEP多少秒，如不想加SLEEP，请设为0。可选。默认1.0。
+输出：
+INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('{\"id\": \"3\"}', 3, '你好'); #start 2668 end 2927 time 2018-12-24 14:47:13
+INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界\"]', 4, '世界'); #start 2958 end 3226 time 2018-12-24 15:54:14
+```
 
-**解析范围控制**
+选项
+===
 
---start-file 起始解析文件，只需文件名，无需全路径 。必须。
+**连接配置**
+```
+-h host -P port -u user -p password
+```
 
---start-position/--start-pos 起始解析位置。可选。默认为start-file的起始位置。
+**解析控制**
 
---stop-file/--end-file 终止解析文件。可选。默认为start-file同一个文件。若解析模式为stop-never，此选项失效。
-
---stop-position/--end-pos 终止解析位置。可选。默认为stop-file的最末位置；若解析模式为stop-never，此选项失效。
-
---start-datetime 起始解析时间，格式'%Y-%m-%d %H:%M:%S'。可选。默认不过滤。
-
---stop-datetime 终止解析时间，格式'%Y-%m-%d %H:%M:%S'。可选。默认不过滤。
+```
+--start-file     起始解析文件。必选，只需文件名而无需全路径。
+--stop-file      终止解析文件。可选，默认为start-file同一个文件。若解析模式为stop-never，此选项失效。
+--start-position 起始解析位置。可选，默认为start-file的起始位置。
+--stop-position  终止解析位置。可选，默认为stop-file的结束位置。若解析模式为stop-never，此选项失效。
+--start-datetime 起始解析时间，可选，格式'2018-12-24 14:00:00'，默认不过滤。
+--stop-datetime  终止解析时间，可选，格式'2018-12-24 14:30:00'，默认不过滤。
+```
 
 **对象过滤**
-
--d, --databases 只解析目标db的sql，多个库用空格隔开，如-d db1 db2。可选。默认为空。
-
--t, --tables 只解析目标table的sql，多张表用空格隔开，如-t tbl1 tbl2。可选。默认为空。
-
---only-dml 只解析dml，忽略ddl。可选。默认False。
-
---sql-type 只解析指定类型，支持INSERT, UPDATE, DELETE。多个类型用空格隔开，如--sql-type INSERT DELETE。可选。默认为增删改都解析。用了此参数但没填任何类型，则三者都不解析。
-
-### 应用案例
-
-#### **误删整张表数据，需要紧急回滚**
-
-闪回详细介绍可参见example目录下《闪回原理与实战》[example/mysql-flashback-priciple-and-practice.md](./example/mysql-flashback-priciple-and-practice.md)
-
-```bash
-test库tbl表原有数据
-mysql> select * from tbl;
-+----+--------+---------------------+
-| id | name   | addtime             |
-+----+--------+---------------------+
-|  1 | 小赵   | 2016-12-10 00:04:33 |
-|  2 | 小钱   | 2016-12-10 00:04:48 |
-|  3 | 小孙   | 2016-12-13 20:25:00 |
-|  4 | 小李   | 2016-12-12 00:00:00 |
-+----+--------+---------------------+
-4 rows in set (0.00 sec)
-
-mysql> delete from tbl;
-Query OK, 4 rows affected (0.00 sec)
-
-20:28时，tbl表误操作被清空
-mysql> select * from tbl;
-Empty set (0.00 sec)
+```
+-d, --databases 只解析目标库，多个库用空格隔开，如-d db1 db2。可选。
+-t, --tables 只解析目标表，多张表用空格隔开，如-t tbl1 tbl2。可选。
+--only-dml 只解析dml，忽略ddl。可选。
+--sql-type 支持INSERT, UPDATE, DELETE。多个类型用空格隔开，如--sql-type INSERT DELETE。可选。默认都解析。
 ```
 
-**恢复数据步骤**：
-
-1. 登录mysql，查看目前的binlog文件
-
-	```bash
-	mysql> show master status;
-	+------------------+-----------+
-	| Log_name         | File_size |
-	+------------------+-----------+
-	| mysql-bin.000051 |       967 |
-	| mysql-bin.000052 |       965 |
-	+------------------+-----------+
-	```
-
-2. 最新的binlog文件是mysql-bin.000052，我们再定位误操作SQL的binlog位置。误操作人只能知道大致的误操作时间，我们根据大致时间过滤数据。
-
-	```bash
-	shell> python binlog2sql/binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p'admin' -dtest -ttbl --start-file='mysql-bin.000052' --start-datetime='2016-12-13 20:25:00' --stop-datetime='2016-12-13 20:30:00'
-	输出：
-	INSERT INTO `test`.`tbl`(`addtime`, `id`, `name`) VALUES ('2016-12-13 20:26:00', 4, '小李'); #start 317 end 487 time 2016-12-13 20:26:26
-	UPDATE `test`.`tbl` SET `addtime`='2016-12-12 00:00:00', `id`=4, `name`='小李' WHERE `addtime`='2016-12-13 20:26:00' AND `id`=4 AND `name`='小李' LIMIT 1; #start 514 end 701 time 2016-12-13 20:27:07
-	DELETE FROM `test`.`tbl` WHERE `addtime`='2016-12-10 00:04:33' AND `id`=1 AND `name`='小赵' LIMIT 1; #start 728 end 938 time 2016-12-13 20:28:05
-	DELETE FROM `test`.`tbl` WHERE `addtime`='2016-12-10 00:04:48' AND `id`=2 AND `name`='小钱' LIMIT 1; #start 728 end 938 time 2016-12-13 20:28:05
-	DELETE FROM `test`.`tbl` WHERE `addtime`='2016-12-13 20:25:00' AND `id`=3 AND `name`='小孙' LIMIT 1; #start 728 end 938 time 2016-12-13 20:28:05
-	DELETE FROM `test`.`tbl` WHERE `addtime`='2016-12-12 00:00:00' AND `id`=4 AND `name`='小李' LIMIT 1; #start 728 end 938 time 2016-12-13 20:28:05
-	```
-
-3. 我们得到了误操作sql的准确位置在728-938之间，再根据位置进一步过滤，使用flashback模式生成回滚sql，检查回滚sql是否正确(注：真实环境下，此步经常会进一步筛选出需要的sql。结合grep、编辑器等)
-
-	```bash
-	shell> python binlog2sql/binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p'admin' -dtest -ttbl --start-file='mysql-bin.000052' --start-position=3346 --stop-position=3556 -B > rollback.sql | cat
-	输出：
-	INSERT INTO `test`.`tbl`(`addtime`, `id`, `name`) VALUES ('2016-12-12 00:00:00', 4, '小李'); #start 728 end 938 time 2016-12-13 20:28:05
-	INSERT INTO `test`.`tbl`(`addtime`, `id`, `name`) VALUES ('2016-12-13 20:25:00', 3, '小孙'); #start 728 end 938 time 2016-12-13 20:28:05
-	INSERT INTO `test`.`tbl`(`addtime`, `id`, `name`) VALUES ('2016-12-10 00:04:48', 2, '小钱'); #start 728 end 938 time 2016-12-13 20:28:05
-	INSERT INTO `test`.`tbl`(`addtime`, `id`, `name`) VALUES ('2016-12-10 00:04:33', 1, '小赵'); #start 728 end 938 time 2016-12-13 20:28:05
-	```
-
-4. 确认回滚sql正确，执行回滚语句。登录mysql确认，数据回滚成功。
-
-	```bash
-	shell> mysql -h127.0.0.1 -P3306 -uadmin -p'admin' < rollback.sql
-
-	mysql> select * from tbl;
-	+----+--------+---------------------+
-	| id | name   | addtime             |
-	+----+--------+---------------------+
-	|  1 | 小赵   | 2016-12-10 00:04:33 |
-	|  2 | 小钱   | 2016-12-10 00:04:48 |
-	|  3 | 小孙   | 2016-12-13 20:25:00 |
-	|  4 | 小李   | 2016-12-12 00:00:00 |
-	+----+--------+---------------------+
-	```
-
-### 限制（对比mysqlbinlog）
-
-* mysql server必须开启，离线模式下不能解析
-* 参数 _binlog\_row\_image_ 必须为FULL，暂不支持MINIMAL
-* 解析速度不如mysqlbinlog
-
-### 优点（对比mysqlbinlog）
-
-* 纯Python开发，安装与使用都很简单
-* 自带flashback、no-primary-key解析模式，无需再装补丁
-* flashback模式下，更适合[闪回实战](./example/mysql-flashback-priciple-and-practice.md)
-* 解析为标准SQL，方便理解、筛选
-* 代码容易改造，可以支持更多个性化解析
-
-### 贡献者
-
-* [danfengcao](https://github.com/danfengcao) 作者，维护者 [https://github.com/danfengcao]
-* 大众点评DBA团队 想法交流，使用体验
-* [赵承勇](https://github.com/imzcy1987) pymysqlreplication权限bug #2
-* [陈路炳](https://github.com/bingluchen) bug报告(字段值为空时的处理)，使用体验
-* [dba-jane](https://github.com/DBA-jane) pymysqlreplication时间字段浮点数bug #29
-* [lujinke](https://github.com/lujinke) bug报告(set字段的处理 #32)
-
-### 联系我
-
-有任何问题，请与我联系。邮箱：[danfengcao.info@gmail.com](danfengcao.info@gmail.com)
-
-欢迎提问题提需求，欢迎pull requests！
-
+**其他选项**
+```
+--stop-never 持续实时解析binlog，直至用户手动 `Ctrl + c` 结束程序。可选。默认False。
+-K, --no-primary-key 去除INSERT语句的主键。可选。默认False
+-B, --flashback 生成回滚SQL，可解析大文件，不受内存限制。可选。默认False。与stop-never或no-primary-key不能同时添加。
+--back-interval -B模式下，每打印1000行回滚SQL，线程休眠N秒。可选。默认N=1。
+--json 支持JSON格式字段解析。可选，默认不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
+```
