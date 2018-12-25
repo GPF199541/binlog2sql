@@ -124,7 +124,7 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 --json           支持JSON格式字段解析。可选，默认不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
 ```
 
-本地调试
+调试
 ===
 ```python
 if __name__ == '__main__':
