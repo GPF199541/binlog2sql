@@ -100,17 +100,17 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 
 **对象过滤**
 ```
--d, --databases 只解析目标库，多个库用空格隔开，如-d db1 db2。可选。
--t, --tables 只解析目标表，多张表用空格隔开，如-t tbl1 tbl2。可选。
---only-dml 只解析dml，忽略ddl。可选。
---sql-type 支持INSERT, UPDATE, DELETE。多个类型用空格隔开，如--sql-type INSERT DELETE。可选。默认都解析。
+-d, --databases  只解析目标库，多个库用空格隔开，如-d db1 db2。可选。
+-t, --tables     只解析目标表，多张表用空格隔开，如-t tbl1 tbl2。可选。
+--only-dml       只解析dml，忽略ddl。可选。
+--sql-type       支持INSERT, UPDATE, DELETE。多个类型用空格隔开，如--sql-type INSERT DELETE。可选。默认都解析。
 ```
 
 **其他选项**
 ```
---stop-never 持续实时解析binlog，直至用户手动 `Ctrl + c` 结束程序。可选。默认False。
--K, --no-primary-key 去除INSERT语句的主键。可选。默认False
--B, --flashback 生成回滚SQL，可解析大文件，不受内存限制。可选。默认False。与stop-never或no-primary-key不能同时添加。
---back-interval -B模式下，每打印1000行回滚SQL，线程休眠N秒。可选。默认N=1。
---json 支持JSON格式字段解析。可选，默认不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
+--stop-never     持续实时解析binlog，直至用户手动 `Ctrl + c` 结束程序。可选。默认False。
+--no-primary-key 去除INSERT语句的主键。可选。默认False
+--flashback      生成回滚SQL，可解析大文件，不受内存限制。可选。默认False。与stop-never或no-primary-key不能同时添加。
+--back-interval  flashback模式下，每打印1000行回滚SQL，线程休眠N秒。可选。默认N=1。
+--json           支持JSON格式字段解析。可选，默认不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
 ```
