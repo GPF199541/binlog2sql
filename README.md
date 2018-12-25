@@ -48,22 +48,29 @@ replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
 - `REDO SQL, UNDO SQL` 的唯一区别是 `--flashback` 选项。
 
 ```bash
-shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:00:00'
+shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p \
+       --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:00:00'
 
 输出：
-INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); #start 568 end 803 time 2018-12-24 14:04:00
-INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); #start 834 end 1069 time 2018-12-24 14:05:23
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); 
+#start 568 end 803 time 2018-12-24 14:04:00
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); 
+#start 834 end 1069 time 2018-12-24 14:05:23
 
 ```
 
 **解析出回滚 `UNDO SQL`**
 
 ```bash
-shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:00:00' --flashback
+shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p \
+       --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:00:00' \
+       --flashback
 
 输出：
-DELETE FROM `test`.`person` WHERE `id`=2 AND `name`='wawa' LIMIT 1; #start 834 end 1069 time 2018-12-24 14:05:23
-DELETE FROM `test`.`person` WHERE `id`=1 AND `name`='haha' LIMIT 1; #start 568 end 803 time 2018-12-24 14:04:00
+DELETE FROM `test`.`person` WHERE `id`=2 AND `name`='wawa' LIMIT 1; 
+#start 834 end 1069 time 2018-12-24 14:05:23
+DELETE FROM `test`.`person` WHERE `id`=1 AND `name`='haha' LIMIT 1; 
+#start 568 end 803 time 2018-12-24 14:04:00
 
 ```
 
@@ -72,11 +79,14 @@ DELETE FROM `test`.`person` WHERE `id`=1 AND `name`='haha' LIMIT 1; #start 568 e
 ```bash
 mysql> ALTER TABLE `test`.`person` ADD COLUMN `desc` json;
 
-shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:30:00'
+shell> python binlog2sql.py -h127.0.0.1 -P3306 -uadmin -p \
+       --start-file='mysql-bin.000003' --start-datetime='2018-12-24 14:30:00'
 
 输出：
-INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('{\"id\": \"3\"}', 3, '你好'); #start 2668 end 2927 time 2018-12-24 14:47:13
-INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界\"]', 4, '世界'); #start 2958 end 3226 time 2018-12-24 15:54:14
+INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('{\"id\": \"3\"}', 3, '你好'); 
+#start 2668 end 2927 time 2018-12-24 14:47:13
+INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界\"]', 4, '世界'); 
+#start 2958 end 3226 time 2018-12-24 15:54:14
 ```
 
 选项
