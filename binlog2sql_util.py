@@ -166,7 +166,7 @@ def fix_object(data):
 
 def type_convert(data):
     if isinstance(data, bytes):
-        return data.decode()
+        return data.decode('utf-8')
     if isinstance(data, dict):
         return dict(map(type_convert, data.items()))
     if isinstance(data, tuple):

@@ -128,16 +128,15 @@ class Binlog2sql(object):
 
 
 if __name__ == '__main__':
-    args = command_line_args(sys.argv[1:])
-    conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
-    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
-                            end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
-                            stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
-                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
-                            output_file=args.output_file, only_dml=args.only_dml, sql_type=args.sql_type,
-                            json=args.json)
-    # conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003',
-    #                         end_file='mysql-bin.000003', stop_time='2018-12-26', json=True, flashback=True,
-    #                         only_dml=True, output_file='backup.sql')
+    # args = command_line_args(sys.argv[1:])
+    # conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
+    #                         end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
+    #                         stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
+    #                         no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
+    #                         output_file=args.output_file, only_dml=args.only_dml, sql_type=args.sql_type,
+    #                         json=args.json)
+    conn_setting = {'host': '172.16.3.133', 'port': 3306, 'user': 'root', 'passwd': 'Ace*963.', 'charset': 'utf8'}
+    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000140', start_time='2018-12-26',
+                            json=True)
     binlog2sql.process_binlog()
