@@ -124,14 +124,14 @@ def create_unique_file(filename):
     return result_file
 
 
-@contextmanager
-def temp_open(filename, mode):
-    f = open(filename, mode, encoding='utf-8')
-    try:
-        yield f
-    finally:
-        f.close()
-        os.remove(filename)
+# @contextmanager
+# def temp_open(filename, mode):
+#     f = open(filename, mode, encoding='utf-8')
+#     try:
+#         yield f
+#     finally:
+#         f.close()
+#         os.remove(filename)
 
 
 def compare_items(items):
