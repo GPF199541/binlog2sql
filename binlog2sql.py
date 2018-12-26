@@ -37,10 +37,10 @@ class Binlog2sql(object):
         self.start_pos = start_pos or 4  # use binlog v4
         self.end_pos = end_pos
         self._tzinfo = arrow.now().tzinfo
-        self.start_time = start_time and arrow.get(start_time).astimezone(
-            self._tzinfo).timestamp() or arrow.get().min.timestamp
-        self.stop_time = stop_time and arrow.get(stop_time).astimezone(
-            self._tzinfo).timestamp() or arrow.get().max.timestamp
+        self.start_time = start_time and arrow.get(
+            arrow.get(start_time).astimezone(self._tzinfo)).timestamp or arrow.get().min.timestamp
+        self.stop_time = stop_time and arrow.get(
+            arrow.get(stop_time).astimezone(self._tzinfo)).timestamp or arrow.get().max.timestamp
 
         # schema filter
         self.only_schemas = only_schemas
