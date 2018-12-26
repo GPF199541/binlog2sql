@@ -20,7 +20,7 @@ class Binlog2sql(object):
 
     def __init__(self, connection_settings, start_file=None, start_pos=None, end_file=None, end_pos=None,
                  start_time=None, stop_time=None, only_schemas=None, only_tables=None, no_pk=False,
-                 flashback=False, stop_never=False, output_flie='', only_dml=True,
+                 flashback=False, stop_never=False, output_file='', only_dml=True,
                  sql_type=None, json=False):
         """
         conn_setting: {'host': 127.0.0.1, 'port': 3306, 'user': user, 'passwd': passwd, 'charset': 'utf8'}
@@ -52,7 +52,7 @@ class Binlog2sql(object):
 
         # optional
         self.no_pk, self.flashback, self.stop_never, self.output_file, self.json = (
-            no_pk, flashback, stop_never, output_flie, json
+            no_pk, flashback, stop_never, output_file, json
         )
 
         self.connection = pymysql.connect(**self.conn_setting)
@@ -128,12 +128,16 @@ class Binlog2sql(object):
 
 
 if __name__ == '__main__':
-    args = command_line_args(sys.argv[1:])
-    conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
-    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
-                            end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
-                            stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
-                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
-                            output_flie=args.output_file, only_dml=args.only_dml, sql_type=args.sql_type,
-                            json=args.json)
+    # args = command_line_args(sys.argv[1:])
+    # conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
+    #                         end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
+    #                         stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
+    #                         no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
+    #                         output_flie=args.output_file, only_dml=args.only_dml, sql_type=args.sql_type,
+    #                         json=args.json)
+    conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
+    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003',
+                            end_file='mysql-bin.000003', stop_time='2018-12-26', json=True, flashback=True,
+                            only_dml=True, output_file='backup.sql')
     binlog2sql.process_binlog()
