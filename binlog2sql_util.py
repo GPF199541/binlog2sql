@@ -33,7 +33,7 @@ def parse_args():
                                  help='MySQL port to use', default=3306)
     connect_setting.add_argument('-u', '--user', dest='user', type=str,
                                  help='MySQL Username to log in as', default='root')
-    connect_setting.add_argument('-p', '--password', dest='password', type=str,
+    connect_setting.add_argument('-p', '--password', dest='password', type=str, nargs='*',
                                  help='MySQL Password to use', default='')
     # interval filter
     interval = parser.add_argument_group('interval filter')
