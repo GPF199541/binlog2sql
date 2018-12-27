@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import os
 import sys
 import platform
@@ -8,7 +9,7 @@ import argparse
 import arrow
 import getpass
 from contextlib import contextmanager
-from pymysqlreplication.event import QueryEvent
+from pymysqlreplication.event import QueryEvent, XidEvent
 from pymysqlreplication.row_event import (
     WriteRowsEvent,
     UpdateRowsEvent,
@@ -76,6 +77,7 @@ def parse_args():
     optional.add_argument('--json', dest='json', action='store_true', default=False,
                           help='Support MySQL 5.7 JSON type.')
     optional.add_argument('--help', dest='help', action='store_true', help='help information', default=False)
+    optional.add_argument('--debug', dest='debug', action='store_true', help='debug', default=False)
     return parser
 
 
@@ -261,8 +263,16 @@ def generate_sql_pattern(binlog_event, row=None, flashback=False, no_pk=False):
 
 
 def write_file(file, line):
-    with open(file, 'a', encoding='utf-8') as f:
-        f.write(line + '\n')
+    if PY3PLUS:
+        with open(file, 'a', encoding='utf-8') as f:
+            f.write(line + '\n')
+    else:
+        with open(file, 'a') as f:
+            f.write(unicode(line + '\n'))
+
+
+def print_line(line):
+    print(line)
 
 
 def reversed_lines(fin):
