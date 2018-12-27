@@ -5,6 +5,7 @@ import sys
 import pymysql
 from pymysqlreplication import BinLogStreamReader
 from binlog2sql_util import (
+    PY_VERSION,
     command_line_args,
     is_dml_event,
     is_ddl_event,
@@ -19,9 +20,9 @@ import arrow
 
 class Binlog2sql(object):
 
-    def __init__(self, connection_settings, start_file=None, start_pos=None, end_file=None, end_pos=None,
+    def __init__(self, connection_settings, start_file=None, stop_file=None, start_position=None, stop_position=None,
                  start_time=None, stop_time=None, only_schemas=None, only_tables=None, no_pk=False,
-                 flashback=False, stop_never=False, output_file='', only_dml=False, sql_type=None, json=False,
+                 flashback=False, stop_never=False, output_file=None, only_dml=False, sql_type=None, json=False,
                  debug=False):
         """
         conn_setting: {'host': 127.0.0.1, 'port': 3306, 'user': user, 'passwd': passwd, 'charset': 'utf8'}
@@ -32,17 +33,13 @@ class Binlog2sql(object):
         self.conn_setting = connection_settings
 
         # interval filter
-        if not start_file:
-            raise ValueError('Lack of parameter: start_file')
-        self.start_file = start_file
-        self.end_file = end_file or start_file
-        self.start_pos = start_pos or 4  # use binlog v4
-        self.end_pos = end_pos
-        self._tzinfo = arrow.now().tzinfo
-        self.start_time = start_time and arrow.get(
-            arrow.get(start_time).astimezone(self._tzinfo)).timestamp or arrow.get().min.timestamp
-        self.stop_time = stop_time and arrow.get(
-            arrow.get(stop_time).astimezone(self._tzinfo)).timestamp or arrow.get().max.timestamp
+        self.start_file = start_file or None
+        self.stop_file = stop_file or self.start_file
+        self.start_position = start_position or 4  # use binlog v4
+        self.stop_position = stop_position
+        self.timezone = arrow.now().tzinfo
+        self.start_time = start_time and arrow.get(arrow.get(start_time).astimezone(self.timezone)).timestamp or arrow.get().min.timestamp
+        self.stop_time = stop_time and arrow.get(arrow.get(stop_time).astimezone(self.timezone)).timestamp or arrow.get().max.timestamp
 
         # schema filter
         self.only_schemas = only_schemas
@@ -56,17 +53,23 @@ class Binlog2sql(object):
         self.no_pk, self.flashback, self.stop_never, self.output_file, self.json, self.debug = (
             no_pk, flashback, stop_never, output_file, json, debug
         )
-
+        self.py_version = PY_VERSION
         self.connection = pymysql.connect(**self.conn_setting)
+
         with self.connection as cursor:
             cursor.execute("SHOW MASTER LOGS")
-            for row in cursor.fetchall():
-                if self.start_file <= row[0] <= self.end_file:
-                    end_file, end_pos = row
-            if end_file:
-                self.end_file, self.end_pos = end_file, end_pos
+            rows = cursor.fetchall()
+            if self.start_file:
+                for row in rows:
+                    if self.start_file <= row[0] <= self.stop_file:
+                        stop_file, stop_position = row
+                if stop_file:
+                    self.stop_file, self.stop_position = stop_file, stop_position
+                else:
+                    raise ValueError('parameter error: start_file %s not in mysql server' % self.start_file)
             else:
-                raise ValueError('parameter error: start_file %s not in mysql server' % self.start_file)
+                self.stop_file, self.stop_position = rows[-1]
+                self.start_file = self.stop_file
 
             cursor.execute("SELECT @@server_id")
             self.server_id = cursor.fetchone()[0]
@@ -76,17 +79,17 @@ class Binlog2sql(object):
     def process_binlog(self):
         if self.debug:
             for k, v in vars(self).items():
-                if k == '_tzinfo':
-                    print_line('{} = {}'.format('timezone', v._std_offset))
+                if k == 'timezone':
+                    print_line('{} = {}'.format(k, v._std_offset))
                 elif k == 'connection':
                     pass
                 else:
                     print_line('{} = {}'.format(k, v))
             return
         stream = BinLogStreamReader(connection_settings=self.conn_setting, server_id=self.server_id,
-                                    log_file=self.start_file, log_pos=self.start_pos,
-                                    only_schemas=self.only_schemas,
-                                    only_tables=self.only_tables, resume_stream=True, blocking=True)
+                                    log_file=self.start_file, log_pos=self.start_position,
+                                    only_schemas=self.only_schemas, only_tables=self.only_tables, resume_stream=True,
+                                    blocking=True, skip_to_timestamp=self.start_time)
         with self.connection as cursor:
             sql = '# {} #\n# {} binlog2sql start! #\n# {} #'.format(''.ljust(50, '='), arrow.now(), ''.ljust(50, '='))
             print_line(sql)
@@ -96,11 +99,9 @@ class Binlog2sql(object):
             start_pos, print_interval, print_time = 4, 60 * 10, 0
             for binlog_event in stream:
 
-                # print_line(type(binlog_event))
-
                 if (print_time + print_interval) < binlog_event.timestamp < self.start_time:
                     print_time = binlog_event.timestamp
-                    print_line('# Binlog scan to {}'.format(arrow.get(print_time).to(self._tzinfo)))
+                    print_line('# Binlog scan to {}'.format(arrow.get(print_time).to(self.timezone)))
 
                 if binlog_event.timestamp < self.start_time:
                     continue
@@ -112,8 +113,7 @@ class Binlog2sql(object):
                             for column in binlog_event.columns:
                                 if column.type == 245:
                                     for k, v in row.items():
-                                        row[k][column.name] = json.dumps(type_convert(v[column.name]),
-                                                                         ensure_ascii=False)
+                                        row[k][column.name] = json.dumps(type_convert(v[column.name]), ensure_ascii=False)
                         sql = generate_sql(cursor=cursor, binlog_event=binlog_event, no_pk=self.no_pk, row=row,
                                            e_start_pos=start_pos, flashback=self.flashback)
                         print_line(sql)
@@ -130,8 +130,8 @@ class Binlog2sql(object):
                             write_file(self.output_file, sql)
 
                 # exceed the end position of the end binlog file
-                if stream.log_file == self.end_file and (
-                        binlog_event.packet.log_pos >= self.end_pos or binlog_event.timestamp >= self.stop_time) and not self.stop_never:
+                if stream.log_file == self.stop_file and (
+                        binlog_event.packet.log_pos >= self.stop_position or binlog_event.timestamp >= self.stop_time) and not self.stop_never:
                     sql = '# {} #\n# {} binlog2sql stop!  #\n# {} #'.format(''.ljust(50, '='), arrow.now(),
                                                                             ''.ljust(50, '='))
                     print_line(sql)
@@ -144,14 +144,13 @@ class Binlog2sql(object):
 if __name__ == '__main__':
     args = command_line_args(sys.argv[1:])
     conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password}
-    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
-                            end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
-                            stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
-                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
-                            output_file=args.output_file, only_dml=args.only_dml, sql_type=args.sql_type,
-                            json=args.json, debug=args.debug)
+    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, stop_file=args.stop_file,
+                            start_position=args.start_position, stop_position=args.stop_position, start_time=args.start_time, stop_time=args.stop_time,
+                            only_schemas=args.databases, only_tables=args.tables,
+                            only_dml=args.only_dml, sql_type=args.sql_type,
+                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never, output_file=args.output_file, json=args.json, debug=args.debug)
     binlog2sql.process_binlog()
 
-    # conn_setting = {'host': '172.16.3.32', 'port': 3306, 'user': 'root', 'passwd': '123100'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', json=True)
+    # conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100'}
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, json=True, output_file='backup.sql')
     # binlog2sql.process_binlog()
