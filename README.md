@@ -30,7 +30,7 @@ shell> pip install -r requirements.txt
 ===
 
 ```
-GRANT SELECT, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO `user`@`%`;
+mysql> GRANT SELECT, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO `user`@`%`;
 
 # 说明：
 select：需要读取server端information_schema.COLUMNS表，获取表结构的元信息，拼接成可视化的sql语句
@@ -41,9 +41,27 @@ replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
 
 用法
 ===
+- `Docker`镜像
+```shell
+shell> docker run --rm nandy/binlog2sql /bin/sh -c "python binlog2sql.py -h 192.168.1.10 -P 3306 -u root -p 123100"
+
+输出：
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); 
+#start 568 end 803 time 2018-12-24 14:04:00
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); 
+#start 834 end 1069 time 2018-12-24 14:05:23
+
+注意：
+1. Docker容器模式下，host、password为必填字段，且必须明确写出。
+2. 如果使用--output-file选项，必须首先挂载目录（提前创建），如:
+   - windows: docker run --rm -v E:\binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
+   - linux  : docker run --rm -v /home/binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
+3. 输出文件 E:\binlog\backup.sql、/home/binlog/backup.sql
+```
+
 - 最简用法
 
-```python
+```
 shell> python binlog2sql.py -p
 
 输出：
