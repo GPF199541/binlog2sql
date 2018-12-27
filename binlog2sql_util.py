@@ -147,16 +147,8 @@ def compare_items(items):
 
 def fix_object(data):
     """Fixes python objects so that they can be properly inserted into SQL queries"""
-    # if isinstance(value, set):
-    #     value = ','.join(value)
-    # if PY3PLUS and isinstance(value, bytes):
-    #     return value.decode('utf-8')
-    # elif not PY3PLUS and isinstance(value, unicode):
-    #     return value.encode('utf-8')
-    # else:
-    #     return value
-    if isinstance(data, bytes):
-        return data.decode()
+    if isinstance(data, (bytes, unicode)):
+        return platform.system() == 'Windows' and data.encode('gbk') or data.encode('utf-8')
     if isinstance(data, dict):
         return dict(map(type_convert, data.items()))
     if isinstance(data, tuple):
