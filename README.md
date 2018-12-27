@@ -21,9 +21,14 @@ binlog2sql
 安装
 ===
 
+- 本地
 ```
 shell> git clone https://github.com/nloneday/binlog2sql.git && cd binlog2sql
 shell> pip install -r requirements.txt
+```
+- `Docker`镜像
+```
+shell> docker pull nandy/binlog2sql
 ```
 
 权限
@@ -41,23 +46,6 @@ replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
 
 用法
 ===
-- `Docker`镜像
-```shell
-shell> docker run --rm nandy/binlog2sql /bin/sh -c "python binlog2sql.py -h 192.168.1.10 -P 3306 -u root -p 123100"
-
-输出：
-INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); 
-#start 568 end 803 time 2018-12-24 14:04:00
-INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); 
-#start 834 end 1069 time 2018-12-24 14:05:23
-
-注意：
-1. Docker容器模式下，host、password为必填字段，且必须明确写出。
-2. 如果使用--output-file选项，必须首先挂载目录（提前创建），如:
-   - windows: docker run --rm -v E:\binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
-   - linux  : docker run --rm -v /home/binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
-3. 输出文件 E:\binlog\backup.sql、/home/binlog/backup.sql
-```
 
 - 最简用法
 
@@ -115,6 +103,24 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('{\"id\": \"3\"}', 3, 
 #start 2668 end 2927 time 2018-12-24 14:47:13
 INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界\"]', 4, '世界'); 
 #start 2958 end 3226 time 2018-12-24 15:54:14
+```
+
+- `Docker`镜像
+```shell
+shell> docker run --rm nandy/binlog2sql /bin/sh -c "python binlog2sql.py -h 192.168.1.10 -P 3306 -u root -p 123100"
+
+输出：
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); 
+#start 568 end 803 time 2018-12-24 14:04:00
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); 
+#start 834 end 1069 time 2018-12-24 14:05:23
+
+注意：
+1. Docker容器模式下，host、password为必填字段，且必须明确写出。
+2. 如果使用--output-file选项，必须首先挂载目录（提前创建），如:
+   - windows: docker run --rm -v E:\binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
+   - linux  : docker run --rm -v /home/binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
+3. 输出文件 E:\binlog\backup.sql、/home/binlog/backup.sql
 ```
 
 选项
