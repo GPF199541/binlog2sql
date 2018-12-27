@@ -42,8 +42,15 @@ replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
 用法
 ===
 - 最简用法
+
 ```python
 shell> python binlog2sql.py -p
+
+输出：
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); 
+#start 568 end 803 time 2018-12-24 14:04:00
+INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa'); 
+#start 834 end 1069 time 2018-12-24 14:05:23
 ```
 
 - `REDO SQL, UNDO SQL` 的唯一区别是 `--flashback` 选项。
