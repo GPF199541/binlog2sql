@@ -2,14 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import os
 import sys
 import platform
 import argparse
 import arrow
 import getpass
-from contextlib import contextmanager
-from pymysqlreplication.event import QueryEvent, XidEvent
+from pymysqlreplication.event import QueryEvent
 from pymysqlreplication.row_event import (
     WriteRowsEvent,
     UpdateRowsEvent,
@@ -99,28 +97,6 @@ def is_valid_datetime(string):
         return False
 
 
-def create_unique_file(filename):
-    version = 0
-    result_file = filename
-    # if we have to try more than 1000 times, something is seriously wrong
-    while os.path.exists(result_file) and version < 1000:
-        result_file = filename + '.' + str(version)
-        version += 1
-    if version >= 1000:
-        raise OSError('cannot create unique file %s.[0-1000]' % filename)
-    return result_file
-
-
-# @contextmanager
-# def temp_open(filename, mode):
-#     f = open(filename, mode, encoding='utf-8')
-#     try:
-#         yield f
-#     finally:
-#         f.close()
-#         os.remove(filename)
-
-
 def compare_items(items):
     # caution: if v is NULL, may need to process
     (k, v) = items
@@ -145,10 +121,14 @@ def type_convert(data):
 
 
 def is_dml_event(event):
-    if isinstance(event, (WriteRowsEvent, UpdateRowsEvent, DeleteRowsEvent)):
-        return True
+    if isinstance(event, WriteRowsEvent):
+        return 'INSERT'
+    elif isinstance(event, UpdateRowsEvent, ):
+        return 'UPDATE'
+    elif isinstance(event, DeleteRowsEvent):
+        return 'DELETE'
     else:
-        return False
+        return ''
 
 
 def is_ddl_event(event):
@@ -238,8 +218,11 @@ def write_file(file, line):
 
 
 def print_line(line):
-    print(line)
-    # if PY3PLUS:
-    #     print(line)
-    # else:
-    #     print(platform.system() == 'Windows' and line.decode('utf-8').encode('gbk') or line)
+    # if pycharm(utf-8)
+    # print(line)
+
+    # if windows cmd(gbk)
+    if not PY3PLUS and platform.system() == 'Windows':
+        print(line.decode('utf-8').encode('gbk'))
+    else:
+        print(line)

@@ -21,7 +21,7 @@ import arrow
 class Binlog2sql(object):
 
     def __init__(self, connection_settings, start_file=None, stop_file=None, start_position=None, stop_position=None,
-                 start_time=None, stop_time=None, only_schemas=None, only_tables=None, no_pk=False,
+                 start_time=None, stop_time=None, databases=None, tables=None, no_pk=False,
                  flashback=False, stop_never=False, output_file=None, only_dml=False, sql_type=None, json=False,
                  debug=False):
         """
@@ -42,8 +42,8 @@ class Binlog2sql(object):
         self.stop_time = stop_time and arrow.get(arrow.get(stop_time).astimezone(self.timezone)).timestamp or arrow.get().max.timestamp
 
         # schema filter
-        self.only_schemas = only_schemas
-        self.only_tables = only_tables
+        self.databases = databases
+        self.tables = tables
 
         # type filter
         self.only_dml = only_dml
@@ -88,7 +88,7 @@ class Binlog2sql(object):
             return
         stream = BinLogStreamReader(connection_settings=self.conn_setting, server_id=self.server_id,
                                     log_file=self.start_file, log_pos=self.start_position,
-                                    only_schemas=self.only_schemas, only_tables=self.only_tables, resume_stream=True,
+                                    only_schemas=self.databases, only_tables=self.tables, resume_stream=True,
                                     blocking=True, skip_to_timestamp=self.start_time)
         with self.connection as cursor:
             sql = '# {} #\n# {} binlog2sql start! #\n# {} #'.format(''.ljust(50, '='), arrow.now(), ''.ljust(50, '='))
@@ -107,7 +107,7 @@ class Binlog2sql(object):
                     continue
 
                 # dml
-                if is_dml_event(binlog_event):
+                if is_dml_event(binlog_event) in self.sql_type:
                     for row in binlog_event.rows:
                         if self.json:
                             for column in binlog_event.columns:
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password}
     binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, stop_file=args.stop_file,
                             start_position=args.start_position, stop_position=args.stop_position, start_time=args.start_time, stop_time=args.stop_time,
-                            only_schemas=args.databases, only_tables=args.tables,
+                            databases=args.databases, tables=args.tables,
                             only_dml=args.only_dml, sql_type=args.sql_type,
                             no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never, output_file=args.output_file, json=args.json, debug=args.debug)
     binlog2sql.process_binlog()

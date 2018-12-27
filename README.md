@@ -41,6 +41,10 @@ replication slave：通过BINLOG_DUMP协议获取binlog内容的权限
 
 用法
 ===
+- 最简用法
+```python
+shell> python binlog2sql.py -p
+```
 
 - `REDO SQL, UNDO SQL` 的唯一区别是 `--flashback` 选项。
 
@@ -91,52 +95,71 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 选项
 ===
 
-**连接配置**
+**连接选项**
 ```
--h host -P port -u user -p password
-```
-
-**解析控制**
-
-```
---start-file     起始解析文件。必选，只需文件名而无需全路径。
---stop-file      终止解析文件。可选，默认为start-file同一个文件。若解析模式为stop-never，此选项失效。
---start-position 起始解析位置。可选，默认为start-file的起始位置。
---stop-position  终止解析位置。可选，默认为stop-file的结束位置。若解析模式为stop-never，此选项失效。
---start-datetime 起始解析时间，可选，格式'2018-12-24 14:00:00'，默认不过滤。
---stop-datetime  终止解析时间，可选，格式'2018-12-24 14:30:00'，默认不过滤。
+-h, --host       可选，MySQL主机。默认为127.0.0.1。
+-P, --port       可选，MySQL端口。默认为3306。
+-u, --user       可选，MySQL用户。默认为root。
+-p, --password   必填，MySQL密码。
 ```
 
-**对象过滤**
+**解析选项**
+
 ```
--d, --databases  只解析目标库，多个库用空格隔开，如-d db1 db2。可选。
--t, --tables     只解析目标表，多张表用空格隔开，如-t tbl1 tbl2。可选。
---only-dml       只解析dml，忽略ddl。可选。
---sql-type       支持INSERT, UPDATE, DELETE。多个类型用空格隔开，如--sql-type INSERT DELETE。可选。默认都解析。
+--start-file     可选，起始解析文件。只需文件名而无需全路径。默认为MySQL当前正在写入的binlog文件。
+--stop-file      可选，终止解析文件。默认为start-file同一个文件。若解析模式为stop-never，此选项失效。
+--start-position 可选，起始解析位置。默认为start-file的起始位置。
+--stop-position  可选，终止解析位置。默认为stop-file的结束位置。若解析模式为stop-never，此选项失效。
+--start-datetime 可选，起始解析时间。格式'yyyy-MM-dd[ hh:mm:ss]'，默认不过滤。
+--stop-datetime  可选，终止解析时间。格式'yyyy-MM-dd[ hh:mm:ss]'，默认不过滤。
+```
+
+**过滤选项**
+```
+-d, --databases  可选，多选，只解析目标库。多个库用空格隔开，如-d db1 db2。
+-t, --tables     可选，多选，只解析目标表。多张表用空格隔开，如-t tbl1 tbl2。
+--only-dml       可选，只解析dml。忽略ddl。
+--sql-type       可选，多选，支持INSERT, UPDATE, DELETE。多个类型用空格隔开，如--sql-type INSERT DELETE。默认都解析。
 ```
 
 **其他选项**
 ```
---stop-never     持续实时解析binlog，直至用户手动 `Ctrl + c` 结束程序。可选。默认False。
---no-primary-key 去除INSERT语句的主键。可选。默认False
---flashback      生成回滚SQL，可解析大文件，不受内存限制。可选。默认False。与stop-never或no-primary-key不能同时添加。
---back-interval  flashback模式下，每打印1000行回滚SQL，线程休眠N秒。可选。默认N=1。
---json           支持JSON格式字段解析。可选，默认不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
+--no-primary-key 可选，去除INSERT语句的主键。默认False
+--flashback      可选，生成回滚SQL，可解析大文件，不受内存限制。可选。默认False。与stop-never或no-primary-key不能同时添加。
+--stop-never     可选，持续实时解析binlog，直至用户手动 `Ctrl + c` 结束程序。可选。默认False。
+--output-file    可选，在打印到屏幕的同时写入本地SQL文件。可选。
+--json           可选，支持JSON格式字段解析。可选，默认False，不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
+--debug          可选，调试模式。在此模式下不进行任何解析操作，只打印所有的参数和值。
+--help           可选，帮助模式。在此模式下不进行任何解析操作，只打印所有帮助信息。
 ```
 
 调试
 ===
+**`binlog2sql.py`**
 ```python
 if __name__ == '__main__':
     # args = command_line_args(sys.argv[1:])
-    # conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password, 'charset': 'utf8'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, start_pos=args.start_pos,
-    #                         end_file=args.end_file, end_pos=args.end_pos, start_time=args.start_time,
-    #                         stop_time=args.stop_time, only_schemas=args.databases, only_tables=args.tables,
-    #                         no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
-    #                         back_interval=args.back_interval, only_dml=args.only_dml, sql_type=args.sql_type,
-    #                         json=args.json)
-    conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100', 'charset': 'utf8'}
-    binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file='mysql-bin.000003', json=True)
+    # conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password}
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, stop_file=args.stop_file,
+    #                         start_position=args.start_position, stop_position=args.stop_position, start_time=args.start_time, stop_time=args.stop_time,
+    #                         only_schemas=args.databases, only_tables=args.tables,
+    #                         only_dml=args.only_dml, sql_type=args.sql_type,
+    #                         no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never, output_file=args.output_file, json=args.json, debug=args.debug)
+    # binlog2sql.process_binlog()
+    
+    conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100'}
+    binlog2sql = Binlog2sql(connection_settings=conn_setting, json=True)
     binlog2sql.process_binlog()
+```
+**`binlog2sql_util.py`**
+```python
+def print_line(line):
+    # if pycharm(utf-8)
+    print(line)
+
+    # if windows cmd(gbk)
+    # if not PY3PLUS and platform.system() == 'Windows':
+    #     print(line.decode('utf-8').encode('gbk'))
+    # else:
+    #     print(line)
 ```
