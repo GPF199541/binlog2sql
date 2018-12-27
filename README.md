@@ -133,9 +133,9 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 ```
 --no-primary-key 可选，去除INSERT语句的主键。默认False
 --flashback      可选，生成回滚SQL，可解析大文件。默认False。与stop-never或no-primary-key不能同时添加。
---stop-never     可选，持续实时解析binlog，直至用户手动 `Ctrl + c` 结束程序。可选。默认False。
+--stop-never     可选，持续实时解析binlog，直至手动 `Ctrl + c` 结束程序。默认False。
 --output-file    可选，在打印到屏幕的同时写入本地SQL文件。可选。
---json           可选，支持JSON格式字段解析。可选，默认False，不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
+--json           可选，支持JSON格式字段解析。默认False，不解析JSON字段（如果表中有JSON字段，生成的SQL格式有误）。
 --debug          可选，调试模式。在此模式下不进行任何解析操作，只打印所有的参数和值。
 --help           可选，帮助模式。在此模式下不进行任何解析操作，只打印所有帮助信息。
 ```
