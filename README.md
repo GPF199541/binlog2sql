@@ -117,8 +117,8 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 --stop-file      可选，终止解析文件。默认为start-file同一个文件。若解析模式为stop-never，此选项失效。
 --start-position 可选，起始解析位置。默认为start-file的起始位置。
 --stop-position  可选，终止解析位置。默认为stop-file的结束位置。若解析模式为stop-never，此选项失效。
---start-datetime 可选，起始解析时间。格式'yyyy-MM-dd[ hh:mm:ss]'，默认不过滤。
---stop-datetime  可选，终止解析时间。格式'yyyy-MM-dd[ hh:mm:ss]'，默认不过滤。
+--start-time     可选，起始解析时间。格式'yyyy-MM-dd[ hh:mm:ss]'，默认不过滤。
+--stop-time      可选，终止解析时间。格式'yyyy-MM-dd[ hh:mm:ss]'，默认不过滤。
 ```
 
 **过滤选项**
