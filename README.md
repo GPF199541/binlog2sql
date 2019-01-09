@@ -28,7 +28,7 @@ shell> pip install -r requirements.txt
 ```
 - `Docker`镜像
 ```
-shell> docker pull nandy/binlog2sql
+shell> docker pull nandy/mysql-binlog2sql
 ```
 
 权限
@@ -107,7 +107,7 @@ INSERT INTO `test`.`person`(`desc`, `id`, `name`) VALUES ('[\"你好\", \"世界
 
 - `Docker`镜像
 ```shell
-shell> docker run --rm nandy/binlog2sql /bin/sh -c "python binlog2sql.py -h 192.168.1.10 -P 3306 -u root -p 123100"
+shell> docker run --rm nandy/mysql-binlog2sql /bin/sh -c "python binlog2sql.py -h 192.168.1.10 -P 3306 -u root -p 123100"
 
 输出：
 INSERT INTO `test`.`person`(`id`, `name`) VALUES (1, 'haha'); 
@@ -118,8 +118,8 @@ INSERT INTO `test`.`person`(`id`, `name`) VALUES (2, 'wawa');
 注意：
 1. Docker容器模式下，host、password为必填字段，且必须明确写出。
 2. 如果使用--output-file选项，必须首先挂载目录（提前创建），如:
-   - windows: docker run --rm -v E:\binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
-   - linux  : docker run --rm -v /home/binlog:/tmp nandy/binlog2sql ... --output-file /tmp/backup.sql
+   - windows: docker run --rm -v E:\binlog:/tmp nandy/mysql-binlog2sql ... --output-file /tmp/backup.sql
+   - linux  : docker run --rm -v /home/binlog:/tmp nandy/mysql-binlog2sql ... --output-file /tmp/backup.sql
 3. 输出文件 E:\binlog\backup.sql、/home/binlog/backup.sql
 ```
 
