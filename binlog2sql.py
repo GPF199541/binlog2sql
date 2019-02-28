@@ -38,8 +38,9 @@ class Binlog2sql(object):
         self.start_position = start_position or 4  # use binlog v4
         self.stop_position = stop_position
         self.timezone = arrow.now().tzinfo
-        self.start_time = start_time and arrow.get(arrow.get(start_time).astimezone(self.timezone)).timestamp or arrow.get().min.timestamp
-        self.stop_time = stop_time and arrow.get(arrow.get(stop_time).astimezone(self.timezone)).timestamp or arrow.get().max.timestamp
+        self.seconds = arrow.now().utcoffset().seconds
+        self.start_time = start_time and arrow.get(start_time).timestamp - self.seconds or arrow.get().min.timestamp
+        self.stop_time = stop_time and arrow.get(stop_time).timestamp - self.seconds or arrow.get().max.timestamp
 
         # schema filter
         self.databases = databases
@@ -145,12 +146,14 @@ if __name__ == '__main__':
     args = command_line_args(sys.argv[1:])
     conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password}
     binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, stop_file=args.stop_file,
-                            start_position=args.start_position, stop_position=args.stop_position, start_time=args.start_time, stop_time=args.stop_time,
+                            start_position=args.start_position, stop_position=args.stop_position, start_time=args.start_time,
+                            stop_time=args.stop_time,
                             databases=args.databases, tables=args.tables,
                             only_dml=args.only_dml, sql_type=args.sql_type,
-                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never, output_file=args.output_file, json=args.json, debug=args.debug)
+                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never, output_file=args.output_file, json=args.json,
+                            debug=args.debug)
     binlog2sql.process_binlog()
 
     # conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, json=True, output_file='backup.sql')
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, json=True, output_file='backup.sql', start_time='2019-02-28 10:00:00')
     # binlog2sql.process_binlog()
