@@ -11,7 +11,6 @@ from binlog2sql_util import (
     is_ddl_event,
     generate_sql,
     type_convert,
-    write_file,
     print_line,
 )
 import json
@@ -92,17 +91,16 @@ class Binlog2sql(object):
                                     only_schemas=self.databases, only_tables=self.tables, resume_stream=True,
                                     blocking=True, skip_to_timestamp=self.start_time)
         with self.connection as cursor:
-            sql = '# {} #\n# {} binlog2sql start! #\n# {} #'.format(''.ljust(50, '='), arrow.now(), ''.ljust(50, '='))
-            print_line(sql)
-            if self.output_file:
-                write_file(self.output_file, sql)
+            sql = '# {} #\n# {} binlog2sql start! #\n# {} #'.format('=' * 50, arrow.now(), '=' * 50)
+            print_line(sql, self.output_file)
 
             start_pos, print_interval, print_time = 4, 60 * 10, 0
             for binlog_event in stream:
 
                 if (print_time + print_interval) < binlog_event.timestamp < self.start_time:
                     print_time = binlog_event.timestamp
-                    print_line('# Binlog scan to {}'.format(arrow.get(print_time).to(self.timezone)))
+                    sql = '# Binlog scan to {}'.format(arrow.get(print_time).to(self.timezone))
+                    print_line(sql, self.output_file)
 
                 if binlog_event.timestamp < self.start_time:
                     continue
@@ -114,30 +112,25 @@ class Binlog2sql(object):
                             for column in binlog_event.columns:
                                 if column.type == 245:
                                     for k, v in row.items():
-                                        row[k][column.name] = json.dumps(type_convert(v[column.name]), ensure_ascii=False)
+                                        row[k][column.name] = json.dumps(type_convert(v[column.name]),
+                                                                         ensure_ascii=False)
                         sql = generate_sql(cursor=cursor, binlog_event=binlog_event, no_pk=self.no_pk, row=row,
                                            e_start_pos=start_pos, flashback=self.flashback)
-                        print_line(sql)
-                        if self.output_file:
-                            write_file(self.output_file, sql)
-                    # ddl
+                        print_line(sql, self.output_file)
+                # ddl
                 elif is_ddl_event(binlog_event):
                     start_pos = binlog_event.packet.log_pos
                     if not self.only_dml and binlog_event.query != 'BEGIN':
                         sql = generate_sql(cursor=cursor, binlog_event=binlog_event, no_pk=self.no_pk,
                                            e_start_pos=start_pos, flashback=self.flashback)
-                        print_line(sql)
-                        if self.output_file:
-                            write_file(self.output_file, sql)
+                        print_line(sql, self.output_file)
 
                 # exceed the end position of the end binlog file
                 if stream.log_file == self.stop_file and (
-                        binlog_event.packet.log_pos >= self.stop_position or binlog_event.timestamp >= self.stop_time) and not self.stop_never:
-                    sql = '# {} #\n# {} binlog2sql stop!  #\n# {} #'.format(''.ljust(50, '='), arrow.now(),
-                                                                            ''.ljust(50, '='))
-                    print_line(sql)
-                    if self.output_file:
-                        write_file(self.output_file, sql)
+                        binlog_event.packet.log_pos >= self.stop_position or binlog_event.timestamp >= self.stop_time
+                ) and not self.stop_never:
+                    sql = '# {} #\n# {} binlog2sql stop!  #\n# {} #'.format('=' * 50, arrow.now(), '=' * 50)
+                    print_line(sql, self.output_file)
                     break
             stream.close()
 
@@ -146,14 +139,16 @@ if __name__ == '__main__':
     args = command_line_args(sys.argv[1:])
     conn_setting = {'host': args.host, 'port': args.port, 'user': args.user, 'passwd': args.password}
     binlog2sql = Binlog2sql(connection_settings=conn_setting, start_file=args.start_file, stop_file=args.stop_file,
-                            start_position=args.start_position, stop_position=args.stop_position, start_time=args.start_time,
+                            start_position=args.start_position, stop_position=args.stop_position,
+                            start_time=args.start_time,
                             stop_time=args.stop_time,
                             databases=args.databases, tables=args.tables,
                             only_dml=args.only_dml, sql_type=args.sql_type,
-                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never, output_file=args.output_file, json=args.json,
+                            no_pk=args.no_pk, flashback=args.flashback, stop_never=args.stop_never,
+                            output_file=args.output_file, json=args.json,
                             debug=args.debug)
     binlog2sql.process_binlog()
 
     # conn_setting = {'host': '127.0.0.1', 'port': 3306, 'user': 'root', 'passwd': '123100'}
-    # binlog2sql = Binlog2sql(connection_settings=conn_setting, json=True, output_file='backup.sql', start_time='2019-02-28 10:00:00')
+    # binlog2sql = Binlog2sql(connection_settings=conn_setting, json=True, output_file='backup.sql', start_time='2019-04-07 10:00:00')
     # binlog2sql.process_binlog()

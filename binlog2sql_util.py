@@ -36,9 +36,12 @@ def parse_args():
     # interval filter
     interval = parser.add_argument_group('interval filter')
     interval.add_argument('--start-file', dest='start_file', type=str, help='Start binlog file to be parsed')
-    interval.add_argument('--stop-file', dest='stop_file', type=str, help="Stop binlog file to be parsed. default: '--start-file'")
-    interval.add_argument('--start-position', dest='start_position', type=int, help='Start position of the --start-file')
-    interval.add_argument('--stop-position', dest='stop_position', type=int, help="Stop position. default: latest position of '--stop-file'")
+    interval.add_argument('--stop-file', dest='stop_file', type=str,
+                          help="Stop binlog file to be parsed. default: '--start-file'")
+    interval.add_argument('--start-position', dest='start_position', type=int,
+                          help='Start position of the --start-file')
+    interval.add_argument('--stop-position', dest='stop_position', type=int,
+                          help="Stop position. default: latest position of '--stop-file'")
     interval.add_argument('--start-time', dest='start_time', type=str, help="Start time. format yyyy-MM-dd[ hh:mm:ss]")
     interval.add_argument('--stop-time', dest='stop_time', type=str, help="Stop Time. format yyyy-MM-dd[ hh:mm:ss]")
 
@@ -49,18 +52,22 @@ def parse_args():
 
     # type filter
     event = parser.add_argument_group('type filter')
-    event.add_argument('--only-dml', dest='only_dml', action='store_true', default=False, help='only print dml, ignore ddl')
+    event.add_argument('--only-dml', dest='only_dml', action='store_true', default=False,
+                       help='only print dml, ignore ddl')
     event.add_argument('--sql-type', dest='sql_type', type=str, nargs='*', default=['INSERT', 'UPDATE', 'DELETE'],
                        help='Sql type you want to process, support INSERT, UPDATE, DELETE.')
 
     # optional
     optional = parser.add_argument_group('optional')
-    optional.add_argument('-K', '--no-primary-key', dest='no_pk', action='store_true', help='Generate insert sql without primary key if exists', default=False)
-    optional.add_argument('-B', '--flashback', dest='flashback', action='store_true', help='Flashback data to start_position of start_file', default=False)
+    optional.add_argument('-K', '--no-primary-key', dest='no_pk', action='store_true',
+                          help='Generate insert sql without primary key if exists', default=False)
+    optional.add_argument('-B', '--flashback', dest='flashback', action='store_true',
+                          help='Flashback data to start_position of start_file', default=False)
     optional.add_argument('--stop-never', dest='stop_never', action='store_true', default=False,
                           help="Continuously parse binlog. default: stop at the latest event when you start.")
     optional.add_argument('--output-file', dest='output_file', default='', help='Write SQL to output file')
-    optional.add_argument('--json', dest='json', action='store_true', default=False, help='Support MySQL 5.7 JSON type.')
+    optional.add_argument('--json', dest='json', action='store_true', default=False,
+                          help='Support MySQL 5.7 JSON type.')
     optional.add_argument('--help', dest='help', action='store_true', help='help information', default=False)
     optional.add_argument('--debug', dest='debug', action='store_true', help='debug, print all args', default=False)
     return parser
@@ -217,7 +224,7 @@ def write_file(file, line):
             f.write(line + '\n')
 
 
-def print_line(line):
+def print_line(line, file=None):
     # if pycharm(utf-8)
     # print(line)
 
@@ -226,3 +233,10 @@ def print_line(line):
         print(line.decode('utf-8').encode('gbk'))
     else:
         print(line)
+    if file:
+        if PY3PLUS:
+            with open(file, 'a', encoding='utf-8') as f:
+                f.write(line + '\n')
+        else:
+            with open(file, 'a') as f:
+                f.write(line + '\n')
