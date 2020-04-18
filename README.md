@@ -1,13 +1,16 @@
 binlog2sql
 ===
 
-从 `MySQL binlog` 中解析出 `REDO SQL, UNDO SQL`。本项目是[nloneday/binlog2sql](https://github.com/nloneday/binlog2sql)的分支，将长期更新并维护。  
-增加pymysql和pymysqlreplication package免安装直接使用
-增加解析的log
+> 从 `MySQL binlog` 中解析出 `REDO SQL, UNDO SQL`。本项目是[nloneday/binlog2sql](https://github.com/nloneday/binlog2sql)的分支，将长期更新并维护。  
 
 future
 ===
 - 测试和适配mysql8.0
+
+change logs
+===
+- 增加pymysql和pymysqlreplication package免安装直接使用
+- 增加解析的log
 
 用途
 ===
@@ -19,8 +22,8 @@ future
 
 适用
 ===
-* `Python 2.6 2.7, 3.4+`
-* `MySQL 5.5 5.6, 5.7`
+* `Python 2.6,2.7, 3.4+`
+* `MySQL 5.5,5.6, 5.7`
 
 
 安装
