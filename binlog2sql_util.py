@@ -5,14 +5,10 @@ from __future__ import print_function
 import sys
 import platform
 import argparse
-import arrow
+import datetime
 import getpass
-from pymysqlreplication.event import QueryEvent
-from pymysqlreplication.row_event import (
-    WriteRowsEvent,
-    UpdateRowsEvent,
-    DeleteRowsEvent,
-)
+from pkg.pymysqlreplication.row_event import WriteRowsEvent,UpdateRowsEvent,DeleteRowsEvent
+from pkg.pymysqlreplication.event import QueryEvent
 
 PY_VERSION = platform.python_version()
 
@@ -67,7 +63,7 @@ def parse_args():
                           help="Continuously parse binlog. default: stop at the latest event when you start.")
     optional.add_argument('--output-file', dest='output_file', default='', help='Write SQL to output file')
     optional.add_argument('--json', dest='json', action='store_true', default=False,
-                          help='Support MySQL 5.7 JSON type.')
+                          help='Support MySQL 5.7 JSON type')
     optional.add_argument('--help', dest='help', action='store_true', help='help information', default=False)
     optional.add_argument('--debug', dest='debug', action='store_true', help='debug, print all args', default=False)
     return parser
@@ -98,7 +94,7 @@ def command_line_args(args):
 
 def is_valid_datetime(string):
     try:
-        arrow.get(string)
+        datetime.datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
         return True
     except:
         return False
@@ -155,7 +151,7 @@ def generate_sql(cursor, binlog_event, row=None, e_start_pos=None, flashback=Fal
         else:
             sql = ''
         sql += '{0};'.format(type_convert(binlog_event.query))
-    time = arrow.get(binlog_event.timestamp).astimezone(arrow.now().timetz().tzinfo)
+    time = datetime.datetime.fromtimestamp(binlog_event.timestamp)
     sql += ' #start %s end %s time %s' % (e_start_pos, binlog_event.packet.log_pos, time)
 
     return sql
@@ -240,3 +236,4 @@ def print_line(line, file=None):
         else:
             with open(file, 'a') as f:
                 f.write(line + '\n')
+
